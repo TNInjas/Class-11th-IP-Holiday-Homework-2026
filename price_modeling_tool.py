@@ -1,171 +1,187 @@
 import sys
-from dataclasses import dataclass
-from typing import List, Tuple
 
-# Force UTF-8 output on Windows
+# Force UTF‑8 output on Windows (so box‑drawing characters display correctly)
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
-# Fixed parameters
-PROD = 200
-RAW = 5.50
-BASE_HRS = 10.0
-RATE = 25.00
-LOG = 150.00
-MKT = 100.00
-WH_MARKUP = 0.40
-RET_MARGIN = 0.30
-TAX = 0.08
+# ─── FIXED INPUT PARAMETERS ──────────────────────────────────────
+PRODUCTION_VOLUME = 200          # bags
+RAW_MATERIAL_COST = 5.50         # $/bag
+BASELINE_LABOR_HOURS = 10.0      # hours
+HOURLY_LABOR_RATE = 25.00        # $/hour
+LOGISTICS_COST = 150.00          # flat shipping
+MARKETING_COST = 100.00          # flat social media spend
+WHOLESALE_MARKUP = 0.40          # 40%
+RETAILER_MARGIN_TARGET = 0.30    # 30%
+SALES_TAX_RATE = 0.08            # 8%
 
-@dataclass
-class Result:
-    name: str
-    hrs: float
-    mat: float
-    lab: float
-    cogs: float
-    opex: float
-    invest: float
-    unit: float
-    wholesale: float
-    retail: float
-    tax_amt: float
-    final: float
-    profit: float
+# ─── HELPER FORMATTING FUNCTIONS ────────────────────────────────
+def fmt(value):
+    """Return a dollar string with two decimals."""
+    return f"${value:,.2f}"
 
-def compute(name: str, hrs: float) -> Result:
-    mat = PROD * RAW
-    lab = hrs * RATE
-    cogs = mat + lab
-    opex = LOG + MKT
-    invest = cogs + opex
-    unit = invest / PROD
-    wholesale = unit * (1 + WH_MARKUP)
-    retail = wholesale / (1 - RET_MARGIN)
-    tax_amt = retail * TAX
-    final = retail + tax_amt
-    profit = (wholesale * PROD) - invest
-    return Result(name, hrs, mat, lab, cogs, opex, invest, unit,
-                  wholesale, retail, tax_amt, final, profit)
+def pct(value):
+    """Return a percentage string (e.g., 0.40 → '40%')."""
+    return f"{value * 100:.0f}%"
 
-# ── Pretty printing helpers ──
-def fmt(v: float) -> str: return f"${v:,.2f}"
-def pct(v: float) -> str: return f"{v * 100:.0f}%"
+# ─── CORE CALCULATION ─────────────────────────────────────────────
+def calculate_scenario(name, labor_hours):
+    """
+    Compute all metrics for a given scenario name and labor hours.
+    Returns a dictionary with all results.
+    """
+    # 1. Total material cost
+    total_material = PRODUCTION_VOLUME * RAW_MATERIAL_COST
 
-def print_box(title: str, rows: List[Tuple[str, str, str, str]], width: int = 78):
-    """Print a bordered table with header and optional delta column."""
-    def line(left, *cols):
-        content = f"  {left:<{30}}"
-        for col in cols:
-            content += f" {col:>{18}}"
-        return f"║{content:<{width}}║"
+    # 2. Total labor cost
+    total_labor = labor_hours * HOURLY_LABOR_RATE
 
-    print("╔" + "═" * width + "╗")
-    print(f"║{title:^{width}}║")
-    print("╠" + "═" * width + "╣")
-    # header
-    hdr = line("Metric", "Baseline", "Breakdown") if len(rows[0]) == 3 else line("Step", "Formula", "Value")
-    print(hdr)
-    print("╟" + "─" * width + "╢")
-    for row in rows:
-        if len(row) == 3:
-            left, a, b = row
-            print(line(left, a, b))
-        else:
-            left, form, val = row
-            # For audit, we show two lines per step
-            print(f"│  {left:<{30}}  {formula:>{37}}  │" if left else "")
-            # Actually adapt: we'll treat differently
-    print("╚" + "═" * width + "╝")
+    # 3. Cost of Goods Sold (COGS)
+    cogs = total_material + total_labor
 
-def display_all(base: Result, breakd: Result):
-    # Input parameters
-    w = 62
-    print("\n╔" + "═" * w + "╗")
-    print(f"║{' ARTISAN ROAST — Price Modeling Tool '.center(w)}║")
-    print(f"║{' Boutique Coffee · Product Launch Analysis '.center(w)}║")
-    print("╠" + "═" * w + "╣")
-    print("║ INPUT PARAMETERS".ljust(w) + "║")
-    print("╠" + "═" * w + "╣")
-    params = [
-        ("Production Volume", f"{PROD} bags"),
-        ("Raw Material Cost", f"{fmt(RAW)} / bag"),
-        ("Baseline Labor Hours", f"{BASE_HRS:.0f} hrs"),
-        ("Hourly Labor Rate", f"{fmt(RATE)} / hr"),
-        ("Logistics (Shipping)", fmt(LOG)),
-        ("Marketing (Social)", fmt(MKT)),
-        ("Wholesale Markup", pct(WH_MARKUP)),
-        ("Retailer Margin Target", pct(RET_MARGIN)),
-        ("Sales Tax Rate", pct(TAX)),
-    ]
-    for label, val in params:
-        print(f"║  {label:<28s} {val:>30s}  ║")
-    print("╚" + "═" * w + "╝")
+    # 4. Operating expenses
+    opex = LOGISTICS_COST + MARKETING_COST
 
-    # Comparison table
-    w = 78
+    # 5. Total investment
+    total_investment = cogs + opex
+
+    # 6. Cost per bag (unit cost)
+    unit_cost = total_investment / PRODUCTION_VOLUME
+
+    # 7. Wholesale price (cost‑plus markup)
+    wholesale = unit_cost * (1 + WHOLESALE_MARKUP)
+
+    # 8. Suggested retail price (true margin formula)
+    retail = wholesale / (1 - RETAILER_MARGIN_TARGET)
+
+    # 9. Sales tax amount
+    sales_tax = retail * SALES_TAX_RATE
+
+    # 10. Final consumer price (including tax)
+    final_price = retail + sales_tax
+
+    # 11. Projected net profit
+    profit = (wholesale * PRODUCTION_VOLUME) - total_investment
+
+    # Return all values in a dictionary
+    return {
+        "name": name,
+        "labor_hours": labor_hours,
+        "total_material": total_material,
+        "total_labor": total_labor,
+        "cogs": cogs,
+        "opex": opex,
+        "total_investment": total_investment,
+        "unit_cost": unit_cost,
+        "wholesale": wholesale,
+        "retail": retail,
+        "sales_tax": sales_tax,
+        "final_price": final_price,
+        "profit": profit,
+    }
+
+# ─── DISPLAY FUNCTIONS ────────────────────────────────────────────
+
+def print_inputs():
+    """Show the fixed input parameters in a simple table."""
+    print("\n" + "=" * 60)
+    print("  ARTISAN ROAST — Price Modeling Tool")
+    print("  Boutique Coffee · Product Launch Analysis")
+    print("=" * 60)
+    print("  INPUT PARAMETERS")
+    print("-" * 60)
+    print(f"  Production Volume       {PRODUCTION_VOLUME} bags")
+    print(f"  Raw Material Cost       {fmt(RAW_MATERIAL_COST)} / bag")
+    print(f"  Baseline Labor Hours    {BASELINE_LABOR_HOURS:.0f} hrs")
+    print(f"  Hourly Labor Rate       {fmt(HOURLY_LABOR_RATE)} / hr")
+    print(f"  Logistics (Shipping)    {fmt(LOGISTICS_COST)}")
+    print(f"  Marketing (Social)      {fmt(MARKETING_COST)}")
+    print(f"  Wholesale Markup        {pct(WHOLESALE_MARKUP)}")
+    print(f"  Retailer Margin Target  {pct(RETAILER_MARGIN_TARGET)}")
+    print(f"  Sales Tax Rate          {pct(SALES_TAX_RATE)}")
+    print("=" * 60)
+
+def print_comparison(baseline, breakdown):
+    """Side‑by‑side comparison of the two scenarios."""
+    print("\n" + "=" * 76)
+    print("  SCENARIO COMPARISON — Cost & Pricing Waterfall")
+    print("=" * 76)
+    print(f"  {'Metric':<30} {'Baseline':>18}  {'Breakdown':>18}")
+    print("-" * 76)
+
     rows = [
-        ("Labor Hours", f"{base.hrs:.0f} hrs", f"{breakd.hrs:.0f} hrs"),
-        ("Total Material Cost", fmt(base.mat), fmt(breakd.mat)),
-        ("Total Labor Cost", fmt(base.lab), fmt(breakd.lab)),
-        ("COGS", fmt(base.cogs), fmt(breakd.cogs)),
-        ("OpEx (Logistics + Mktg)", fmt(base.opex), fmt(breakd.opex)),
-        ("Total Investment", fmt(base.invest), fmt(breakd.invest)),
-        ("Unit Cost", fmt(base.unit), fmt(breakd.unit)),
-        ("", "", ""),  # spacer
-        ("Wholesale Price", fmt(base.wholesale), fmt(breakd.wholesale)),
-        ("Suggested Retail Price", fmt(base.retail), fmt(breakd.retail)),
-        ("Sales Tax Amount", fmt(base.tax_amt), fmt(breakd.tax_amt)),
-        ("Final Consumer Price", fmt(base.final), fmt(breakd.final)),
+        ("Labor Hours", f"{baseline['labor_hours']:.0f} hrs", f"{breakdown['labor_hours']:.0f} hrs"),
+        ("Total Material Cost", fmt(baseline['total_material']), fmt(breakdown['total_material'])),
+        ("Total Labor Cost", fmt(baseline['total_labor']), fmt(breakdown['total_labor'])),
+        ("COGS", fmt(baseline['cogs']), fmt(breakdown['cogs'])),
+        ("OpEx (Logistics + Mktg)", fmt(baseline['opex']), fmt(breakdown['opex'])),
+        ("Total Investment", fmt(baseline['total_investment']), fmt(breakdown['total_investment'])),
+        ("Unit Cost", fmt(baseline['unit_cost']), fmt(breakdown['unit_cost'])),
+        ("", "", ""),   # separator
+        ("Wholesale Price", fmt(baseline['wholesale']), fmt(breakdown['wholesale'])),
+        ("Suggested Retail Price", fmt(baseline['retail']), fmt(breakdown['retail'])),
+        ("Sales Tax Amount", fmt(baseline['sales_tax']), fmt(breakdown['sales_tax'])),
+        ("Final Consumer Price", fmt(baseline['final_price']), fmt(breakdown['final_price'])),
         ("", "", ""),
-        ("Projected Net Profit", fmt(base.profit), fmt(breakd.profit)),
+        ("Projected Net Profit", fmt(baseline['profit']), fmt(breakdown['profit'])),
     ]
-    print("\n╔" + "═" * w + "╗")
-    print(f"║{' SCENARIO COMPARISON — Cost & Pricing Waterfall '.center(w)}║")
-    print("╠" + "═" * w + "╣")
-    print(f"║  {'Metric':<{30}} {'Baseline':>{18}}  {'Breakdown':>{18}} ║")
-    print("╟" + "─" * w + "╢")
+
     for label, a, b in rows:
         if label == "":
-            print("╟" + "─" * w + "╢")
+            print("-" * 76)
         else:
-            print(f"║  {label:<{30}} {a:>{18}}  {b:>{18}} ║")
-    # profit impact line
-    delta = breakd.profit - base.profit
-    sign = "−" if delta < 0 else "+"
-    print("╟" + "─" * w + "╢")
-    print(f"║{'  Profit Impact of Breakdown:':<{w}}║")
-    print(f"║  {sign}{fmt(abs(delta)):>74} ║")
-    print("╚" + "═" * w + "╝")
+            print(f"  {label:<30} {a:>18}  {b:>18}")
 
-    # Formula audits (one per scenario)
-    for res in (base, breakd):
-        w = 72
-        print("\n┌" + "─" * w + "┐")
-        print(f"│{f'  FORMULA AUDIT — {res.name}':<{w}}│")
-        print("├" + "─" * w + "┤")
-        steps = [
-            ("1. Total Material Cost", f"{PROD} × {fmt(RAW)}", fmt(res.mat)),
-            ("2. Total Labor Cost", f"{res.hrs:.0f} hrs × {fmt(RATE)}", fmt(res.lab)),
-            ("3. COGS", f"{fmt(res.mat)} + {fmt(res.lab)}", fmt(res.cogs)),
-            ("4. OpEx", f"{fmt(LOG)} + {fmt(MKT)}", fmt(res.opex)),
-            ("5. Total Investment", f"{fmt(res.cogs)} + {fmt(res.opex)}", fmt(res.invest)),
-            ("6. Unit Cost", f"{fmt(res.invest)} / {PROD}", fmt(res.unit)),
-            ("7. Wholesale Price", f"{fmt(res.unit)} × (1 + {pct(WH_MARKUP)})", fmt(res.wholesale)),
-            ("8. SRP (margin)", f"{fmt(res.wholesale)} / (1 − {pct(RET_MARGIN)})", fmt(res.retail)),
-            ("9. Sales Tax", f"{fmt(res.retail)} × {pct(TAX)}", fmt(res.tax_amt)),
-            ("10. Final Consumer Price", f"{fmt(res.retail)} + {fmt(res.tax_amt)}", fmt(res.final)),
-            ("11. Projected Net Profit", f"({fmt(res.wholesale)} × {PROD}) − {fmt(res.invest)}", fmt(res.profit)),
-        ]
-        for step, form, val in steps:
-            print(f"│  {step:<{30}} {form:>{28}}  =  {val:>{10}} │")
-        print("└" + "─" * w + "┘")
+    # Show the profit impact of the breakdown scenario
+    delta = breakdown['profit'] - baseline['profit']
+    sign = "−" if delta < 0 else "+"
+    print("-" * 76)
+    print(f"  Profit Impact of Breakdown:  {sign}{fmt(abs(delta))}")
+    print("=" * 76)
+
+def print_audit(scenario):
+    """Step‑by‑step formula audit for one scenario."""
+    print("\n" + "-" * 70)
+    print(f"  FORMULA AUDIT — {scenario['name']}")
+    print("-" * 70)
+
+    steps = [
+        ("1. Total Material Cost", f"{PRODUCTION_VOLUME} × {fmt(RAW_MATERIAL_COST)}", fmt(scenario['total_material'])),
+        ("2. Total Labor Cost", f"{scenario['labor_hours']:.0f} hrs × {fmt(HOURLY_LABOR_RATE)}", fmt(scenario['total_labor'])),
+        ("3. COGS", f"{fmt(scenario['total_material'])} + {fmt(scenario['total_labor'])}", fmt(scenario['cogs'])),
+        ("4. OpEx", f"{fmt(LOGISTICS_COST)} + {fmt(MARKETING_COST)}", fmt(scenario['opex'])),
+        ("5. Total Investment", f"{fmt(scenario['cogs'])} + {fmt(scenario['opex'])}", fmt(scenario['total_investment'])),
+        ("6. Unit Cost", f"{fmt(scenario['total_investment'])} / {PRODUCTION_VOLUME}", fmt(scenario['unit_cost'])),
+        ("7. Wholesale Price", f"{fmt(scenario['unit_cost'])} × (1 + {pct(WHOLESALE_MARKUP)})", fmt(scenario['wholesale'])),
+        ("8. SRP (margin formula)", f"{fmt(scenario['wholesale'])} / (1 − {pct(RETAILER_MARGIN_TARGET)})", fmt(scenario['retail'])),
+        ("9. Sales Tax", f"{fmt(scenario['retail'])} × {pct(SALES_TAX_RATE)}", fmt(scenario['sales_tax'])),
+        ("10. Final Consumer Price", f"{fmt(scenario['retail'])} + {fmt(scenario['sales_tax'])}", fmt(scenario['final_price'])),
+        ("11. Projected Net Profit", f"({fmt(scenario['wholesale'])} × {PRODUCTION_VOLUME}) − {fmt(scenario['total_investment'])}", fmt(scenario['profit'])),
+    ]
+
+    for step, formula, result in steps:
+        print(f"  {step:<30} {formula:>34}  =  {result:>10}")
+
+# ─── MAIN PROGRAM ──────────────────────────────────────────────────
 
 def main():
-    base = compute("Baseline", BASE_HRS)
-    breakdown = compute("Machine Breakdown (2× Labor)", BASE_HRS * 2)
-    display_all(base, breakdown)
-    print()
+    # Show input parameters
+    print_inputs()
+
+    # Run baseline scenario
+    baseline = calculate_scenario("Baseline", BASELINE_LABOR_HOURS)
+
+    # Run breakdown scenario (doubled labor)
+    breakdown = calculate_scenario("Machine Breakdown (2× Labor)", BASELINE_LABOR_HOURS * 2)
+
+    # Compare both scenarios
+    print_comparison(baseline, breakdown)
+
+    # Show detailed audit for each scenario
+    print_audit(baseline)
+    print_audit(breakdown)
+
+    print()   # final blank line
 
 if __name__ == "__main__":
     main()

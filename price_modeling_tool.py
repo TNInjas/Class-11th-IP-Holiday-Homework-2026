@@ -30,19 +30,26 @@ final = retail + tax_amt
 profit = (wholesale * PROD) - invest
 
 # Output
+report = {
+    "Scenario": name,
+    "Labor Hours": f"{hrs} hrs",
+    "Material Cost": f"${round(mat, 2)}",
+    "Labor Cost": f"${round(lab, 2)}",
+    "COGS (Cost of Goods Sold)": f"${round(cogs, 2)}",
+    "Operating Expenses": f"${round(opex, 2)}",
+    "Total Investment": f"${round(invest, 2)}",
+    "Unit Cost": f"${round(unit, 2)}",
+    "Wholesale Price": f"${round(wholesale, 2)}",
+    "Suggested Retail Price (SRP)": f"${round(retail, 2)}",
+    "Sales Tax Amount": f"${round(tax_amt, 2)}",
+    "Final Consumer Price": f"${round(final, 2)}",
+    "Projected Net Profit": f"${round(profit, 2)}"
+}
+
+# Print the report
 print("\n----------------------------")
 print("PRICE MODELING REPORT")
 print("----------------------------")
-print("Scenario:", name)
-print("Labor Hours:", hrs, "hrs")
-print("Material Cost: $", round(mat, 2))
-print("Labor Cost: $", round(lab, 2))
-print("COGS (Cost of Goods Sold): $", round(cogs, 2))
-print("Operating Expenses: $", round(opex, 2))
-print("Total Investment: $", round(invest, 2))
-print("Unit Cost: $", round(unit, 2))
-print("Wholesale Price: $", round(wholesale, 2))
-print("Suggested Retail Price (SRP): $", round(retail, 2))
-print("Sales Tax Amount: $", round(tax_amt, 2))
-print("Final Consumer Price: $", round(final, 2))
-print("Projected Net Profit: $", round(profit, 2))
+
+for key, value in report.items():
+    print(f"{key}: {value}")

@@ -1,6 +1,6 @@
 # ☕ Artisan Roast — Price Modeling Tool
 
-A clean, production-ready Python script for modeling the full pricing waterfall of a boutique coffee product launch. It computes unit cost, wholesale price, suggested retail price (SRP), final consumer price, and projected net profit — then runs a **Machine Breakdown Scenario** side-by-side for risk analysis.
+A simple Python script for modeling the pricing waterfall of a boutique coffee product launch. It computes unit cost, wholesale price, suggested retail price (SRP), and final consumer price with sales tax.
 
 ---
 
@@ -8,16 +8,15 @@ A clean, production-ready Python script for modeling the full pricing waterfall 
 
 - **11-step sequential pricing waterfall** from raw materials to consumer shelf price
 - **True retailer margin formula** for SRP (`Wholesale / (1 − Margin)`)
-- **Scenario Analysis** — Baseline vs. Machine Breakdown (doubled labor hours)
-- **Formatted terminal UI** — ASCII-bordered tables with side-by-side comparison
-- **Step-by-step formula audit** trail showing inputs and outputs for every calculation
-- **Modular design** — `calculate_scenario()` can be imported and reused in other scripts
+- **Interactive input** — Enter scenario name and labor hours at runtime
+- **Complete pricing audit trail** showing all intermediate calculations
+- **Sales tax calculation** applied to suggested retail price
 
 ---
 
 ## 🚀 Quick Start
 
-**Prerequisites:** Python 3.10 or later. No third-party packages required.
+**Prerequisites:** Python 3.6 or later. No third-party packages required.
 
 ```powershell
 # Navigate to the project folder
@@ -27,13 +26,17 @@ cd "c:\Users\devel\Desktop\IP HHW"
 python price_modeling_tool.py
 ```
 
+The script will prompt you to enter:
+1. **Scenario Name** — A description of the scenario (e.g., "Baseline", "Machine Breakdown")
+2. **Labor Hours** — Number of hours required for production
+
 ---
 
 ## 📁 Project Structure
 
 ```
 IP HHW/
-├── price_modeling_tool.py   # Main script — all logic, calculations, and output
+├── price_modeling_tool.py   # Main script — all logic and calculations
 └── README.md                # This file
 ```
 
@@ -41,98 +44,75 @@ IP HHW/
 
 ## ⚙️ Configuration
 
-All input parameters are defined as constants at the top of [`price_modeling_tool.py`](./price_modeling_tool.py) (lines 22–30). Edit these values to model your own product launch:
+All input parameters are defined as constants at the top of [`price_modeling_tool.py`](./price_modeling_tool.py):
 
 | Constant | Default | Description |
 |---|---|---|
-| `PRODUCTION_VOLUME` | `200` | Number of bags produced |
-| `RAW_MATERIAL_COST` | `$5.50` | Cost of raw materials per bag |
-| `BASELINE_LABOR_HOURS` | `10.0` | Labor hours under normal conditions |
-| `HOURLY_LABOR_RATE` | `$25.00` | Cost per labor hour |
-| `LOGISTICS_COST` | `$150.00` | Flat shipping / freight cost |
-| `MARKETING_COST` | `$100.00` | Flat social media marketing spend |
-| `WHOLESALE_MARKUP` | `0.40` | 40% markup over unit cost |
-| `RETAILER_MARGIN_TARGET` | `0.30` | 30% retailer margin (true margin formula) |
-| `SALES_TAX_RATE` | `0.08` | 8% sales tax applied to SRP |
+| `PROD` | `200` | Number of bags produced |
+| `RAW` | `5.50` | Cost of raw materials per bag |
+| `RATE` | `25.00` | Hourly labor rate |
+| `LOG` | `150.00` | Logistics / shipping cost |
+| `MKT` | `100.00` | Marketing spend |
+| `WH_MARKUP` | `0.40` | 40% wholesale markup over unit cost |
+| `RET_MARGIN` | `0.30` | 30% retailer margin (true margin formula) |
+| `TAX` | `0.08` | 8% sales tax rate |
 
 ---
 
 ## 🧮 Pricing Waterfall (11 Steps)
 
-| Step | Formula |
-|---|---|
-| 1. Total Material Cost | `Production Volume × Raw Material Cost` |
-| 2. Total Labor Cost | `Labor Hours × Hourly Labor Rate` |
-| 3. COGS | `Total Material Cost + Total Labor Cost` |
-| 4. OpEx | `Logistics + Marketing` |
-| 5. Total Investment | `COGS + OpEx` |
-| 6. Unit Cost | `Total Investment / Production Volume` |
-| 7. Wholesale Price | `Unit Cost × (1 + Wholesale Markup)` |
-| 8. Suggested Retail Price | `Wholesale Price / (1 − Retailer Margin)` |
-| 9. Sales Tax Amount | `SRP × Sales Tax Rate` |
-| 10. Final Consumer Price | `SRP + Sales Tax Amount` |
-| 11. Projected Net Profit | `(Wholesale Price × Production Volume) − Total Investment` |
-
----
-
-## 📊 Sample Output (Baseline Values)
-
-```
-║  Metric                         Baseline        Breakdown       ║
-╟─────────────────────────────────────────────────────────────────╢
-║  ▸ COST BUILD-UP                                                ║
-║  Labor Hours                     10 hrs           20 hrs        ║
-║  Total Material Cost          $1,100.00        $1,100.00        ║
-║  Total Labor Cost               $250.00          $500.00        ║
-║  COGS                         $1,350.00        $1,600.00        ║
-║  OpEx (Logistics + Mktg)        $250.00          $250.00        ║
-║  Total Investment             $1,600.00        $1,850.00        ║
-║  Unit Cost                        $8.00            $9.25        ║
-╟─────────────────────────────────────────────────────────────────╢
-║  ▸ PRICING CHAIN                                                ║
-║  Wholesale Price                 $11.20           $12.95        ║
-║  Suggested Retail Price          $16.00           $18.50        ║
-║  Sales Tax Amount                 $1.28            $1.48        ║
-║  Final Consumer Price            $17.28           $19.98        ║
-╟─────────────────────────────────────────────────────────────────╢
-║  ▸ PROFITABILITY                                                ║
-║  Projected Net Profit           $640.00          $740.00        ║
-╚═════════════════════════════════════════════════════════════════╝
-```
-
----
-
-## 🔌 Programmatic Usage
-
-`calculate_scenario()` can be imported into any other Python script for custom analysis:
-
-```python
-from price_modeling_tool import calculate_scenario
-
-result = calculate_scenario(
-    scenario_name="Holiday Launch",
-    labor_hours=15.0,
-    production_volume=500,
-)
-
-print(f"Final Consumer Price: ${result.final_consumer_price:.2f}")
-print(f"Projected Net Profit: ${result.projected_net_profit:.2f}")
-```
-
-All results are returned as a `ScenarioResult` dataclass with named fields for every metric (e.g. `result.unit_cost`, `result.wholesale_price`, `result.suggested_retail_price`).
-
----
-
-## 🧪 Scenario Analysis
-
-The script automatically runs two scenarios back-to-back:
-
-| Scenario | Labor Hours | Key Difference |
+| Step | Formula | Variable |
 |---|---|---|
-| **Baseline** | 10 hrs | Normal operating conditions |
-| **Machine Breakdown** | 20 hrs | Equipment failure doubles labor time |
+| 1. Total Material Cost | `Production Volume × Raw Material Cost` | `mat` |
+| 2. Total Labor Cost | `Labor Hours × Hourly Labor Rate` | `lab` |
+| 3. COGS | `Material Cost + Labor Cost` | `cogs` |
+| 4. OpEx | `Logistics + Marketing` | `opex` |
+| 5. Total Investment | `COGS + OpEx` | `invest` |
+| 6. Unit Cost | `Total Investment / Production Volume` | `unit` |
+| 7. Wholesale Price | `Unit Cost × (1 + Wholesale Markup)` | `wholesale` |
+| 8. Suggested Retail Price | `Wholesale Price / (1 − Retailer Margin)` | `retail` |
+| 9. Sales Tax Amount | `SRP × Sales Tax Rate` | `tax_amt` |
+| 10. Final Consumer Price | `SRP + Sales Tax Amount` | `final` |
+| 11. Projected Net Profit | `(Wholesale Price × Production Volume) − Total Investment` | `profit` |
 
-The profit impact of the disruption is printed at the bottom of the comparison table.
+---
+
+## 📊 Sample Output
+
+When you run the script, it produces output like this:
+
+```
+----------------------------
+PRICE MODELING REPORT
+----------------------------
+Scenario: Baseline
+Labor Hours: 10.0 hrs
+Material Cost: $ 1100.0
+Labor Cost: $ 250.0
+COGS (Cost of Goods Sold): $ 1350.0
+Operating Expenses: $ 250.0
+Total Investment: $ 1600.0
+Unit Cost: $ 8.0
+Wholesale Price: $ 11.2
+Suggested Retail Price (SRP): $ 16.0
+Sales Tax Amount: $ 1.28
+Final Consumer Price: $ 17.28
+Projected Net Profit: $ 640.0
+```
+
+---
+
+## 💡 Example Scenarios
+
+Run the script multiple times with different inputs to analyze different scenarios:
+
+| Scenario | Labor Hours | Impact |
+|---|---|---|
+| **Baseline** | 10 | Normal operating conditions |
+| **Machine Breakdown** | 20 | Equipment failure; doubled labor time |
+| **Overtime** | 15 | Extra shifts required |
+
+Compare the **Final Consumer Price** and **Projected Net Profit** across scenarios to understand the impact of operational disruptions.
 
 ---
 
